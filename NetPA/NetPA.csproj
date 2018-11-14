@@ -59,6 +59,12 @@
     <Compile Include="FModuleSettings.designer.cs">
       <DependentUpon>FModuleSettings.cs</DependentUpon>
     </Compile>
+    <Compile Include="FNCConnectionsList.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FNCConnectionsList.designer.cs">
+      <DependentUpon>FNCConnectionsList.cs</DependentUpon>
+    </Compile>
     <Compile Include="FNetPA.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -77,6 +83,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FModuleSettings.resx">
       <DependentUpon>FModuleSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FNCConnectionsList.resx">
+      <DependentUpon>FNCConnectionsList.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FNetPA.resx">
       <DependentUpon>FNetPA.cs</DependentUpon>

@@ -15,6 +15,7 @@ using AsyncConnectionNS;
 using JeromeModuleSettings;
 using System.Threading;
 using StorableFormState;
+using NetComm;
 
 namespace NetPA
 {
@@ -37,8 +38,8 @@ namespace NetPA
         protected List<string> buttonLabels = new List<string>();
         protected Dictionary<JeromeConnectionParams, ToolStripMenuItem> menuControl = new Dictionary<JeromeConnectionParams, ToolStripMenuItem>();
         protected Color buttonsColor;
-        protected Dictionary<int, int> esBindings = new Dictionary< int, int> ();
-        protected NetCommConfig config { get { return (NetCommConfig)componentConfig; } }
+//        protected Dictionary<int, int> esBindings = new Dictionary< int, int> ();
+        protected NetCommConfig config = new NetCommConfig();
         protected bool trx = false;
         protected volatile bool closing = false;
         protected JeromeConnectionState activeConnection;
@@ -249,7 +250,7 @@ namespace NetPA
             if (activeConnection.controller == null || !activeConnection.controller.connected || position == newTarget)
                 return;
             if (rotateTask == null)
-                rotateTask = TaskEx.Run(async () =>
+                rotateTask = Task.Run(async () =>
                {
                    JeromeController controller = activeConnection.controller;
                    System.Diagnostics.Debug.WriteLine("start rotate to " + target.ToString());
@@ -265,9 +266,9 @@ namespace NetPA
                            dir = target < position ? -1 : 1;
                        controller.switchLine(controllerTemplate.dir, dir == -1 ? 0 : 1);
                        controller.switchLine(controllerTemplate.pulse, 1);
-                       await TaskEx.Delay(5);
+                       await Task.Delay(5);
                        controller.switchLine(controllerTemplate.pulse, 0);
-                       await TaskEx.Delay(5);
+                       await Task.Delay(5);
                        if (position != -1 )
                            position += dir;
                        /*if (position == 0 || position == buttonPositions[buttonPositions.Count() - 1])
@@ -294,7 +295,7 @@ namespace NetPA
             {
                 bool busy = connections.Values.ToList().Exists(x => x.watch && x.linesStates[co]);
                 buttons[co].Enabled = !trx && connected && !busy;
-                if (esBindings.ContainsValue(co) )
+                /*if (esBindings.ContainsValue(co) )
                 {
                     int band = esBindings.First(x => x.Value == co).Key;
                     if (busy)
@@ -304,7 +305,7 @@ namespace NetPA
                     } else 
                         if (appContext.busyBands.Contains(band))
                             appContext.busyBands.Remove(band);
-                }
+                }*/
             }
             foreach (CheckBox b in buttonsRelay)
                 b.Enabled = !trx && connected;
@@ -323,7 +324,6 @@ namespace NetPA
                 else
                 {
                     this.Text = "Disconnected!";
-                    appContext.showNotification("NetComm", c.name + ": соединение потеряно!", ToolTipIcon.Error);
                 }
                 updateButtonsMode();
             });
@@ -353,7 +353,7 @@ namespace NetPA
                     {
                         buttons.Where(x => x != b).ToList().ForEach(x => x.Checked = false);
                         b.ForeColor = Color.Red;
-                        TaskEx.Run(() => { rotate(buttonPositions[no]); });
+                        Task.Run(() => { rotate(buttonPositions[no]); });
                     }
                     else
                     {
@@ -413,17 +413,16 @@ namespace NetPA
 
             config.buttonLabels = buttonLabels.ToArray();
 
-            config.esMhzValues = new int[ esBindings.Count ];
-            config.esButtons = new int[esBindings.Count];
-            co = 0;
-            foreach ( KeyValuePair<int,int> x in esBindings ) {
-                config.esMhzValues[co] = x.Key;
-                config.esButtons[co] = x.Value;
-                co++;
-            }
+            /* config.esMhzValues = new int[ esBindings.Count ];
+             config.esButtons = new int[esBindings.Count];
+             co = 0;
+             foreach ( KeyValuePair<int,int> x in esBindings ) {
+                 config.esMhzValues[co] = x.Key;
+                 config.esButtons[co] = x.Value;
+                 co++;
+             }*/
 
-            appContext.writeConfig();
-
+            writeConfig();
         }
 
         protected void initConfig()
@@ -444,9 +443,9 @@ namespace NetPA
                 connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
             if (config.buttonLabels != null) 
                 buttonLabels = config.buttonLabels.ToList();
-            if ( config.esMhzValues != null )
+          /*  if ( config.esMhzValues != null )
                 for (int co = 0; co < config.esButtons.Count(); co++)
-                    esBindings[config.esMhzValues[co]] = config.esButtons[co];
+                    esBindings[config.esMhzValues[co]] = config.esButtons[co];*/
         }
 
         protected void miModuleSettings_Click(object sender, EventArgs e)
@@ -601,7 +600,7 @@ namespace NetPA
         protected async void FNetPA_FormClosed(object sender, FormClosedEventArgs e)
         {
             closing = true;
-            await TaskEx.WhenAll(connections.Where(x => x.Value.controller != null)
+            await Task.WhenAll(connections.Where(x => x.Value.controller != null)
                 .Select(x => disconnectTask(x.Value)));
         }
 
