@@ -357,12 +357,12 @@ namespace NetPA
 
         private void esItem_Click(object sender, EventArgs e)
         {
-            FESConnection fesc = new FESConnection(config.esHost, config.esPort);
+            FESConnection fesc = new FESConnection(config.data.esHost, config.data.esPort);
             if (fesc.ShowDialog() == DialogResult.OK &&
-                (config.data.esHost != fesc.host || config.esPort != fesc.port))
+                (config.data.esHost != fesc.host || config.data.esPort != fesc.port))
             {
-                config.esHost = fesc.host;
-                config.esPort = fesc.port;
+                config.data.esHost = fesc.host;
+                config.data.esPort = fesc.port;
                 esConnect();
             }
         }

@@ -56,6 +56,11 @@ namespace NetComm
         public int[] esButtons;
         [DataMember]
         public int lastConnection;
+        [DataMember]
+        public string esHost = "127.0.0.1";
+        [DataMember]
+        public int esPort = 50040;
+
 
         public void initialize()
         {
