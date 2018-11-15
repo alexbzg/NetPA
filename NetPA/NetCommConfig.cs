@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Serialization;
 using StorableFormState;
+using System.Runtime.Serialization;
 
 namespace NetComm
 {
@@ -19,8 +20,8 @@ namespace NetComm
 
         public JeromeConnectionState()
         {
-            linesStates = new bool[FNetComm.lines.Count()];
-            lines = new int[FNetComm.lines.Count()];
+            linesStates = new bool[22];
+            lines = new int[22];
             for (int co = 0; co < linesStates.Count(); co++)
             {
                 linesStates[co] = false;
@@ -38,15 +39,37 @@ namespace NetComm
         }
     }
 
-
+    [DataContract]
     public class NetCommConfig : StorableFormConfig
     {
+        [DataMember]
         public JeromeConnectionParams[] connections;
+        [DataMember]
         public JeromeConnectionState[] states;
+        [DataMember]
         public string[] buttonLabels;
+        [DataMember]
+        public string[] buttonRelayLabels;
+        [DataMember]
         public int[] esMhzValues;
+        [DataMember]
         public int[] esButtons;
+        [DataMember]
         public int lastConnection;
+
+        public void initialize()
+        {
+            if (connections != null)
+            {
+                if (states == null || states.Count() == 0)
+                    states = new JeromeConnectionState[connections.Count()];
+                for (int co = 0; co < connections.Count(); co++)
+                {
+                    if (states[co] == null)
+                        states[co] = new JeromeConnectionState();
+                }
+            }
+        }
 
 
     }

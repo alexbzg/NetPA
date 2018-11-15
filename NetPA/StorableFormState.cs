@@ -4,31 +4,37 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using XmlConfigNS;
+using InvokeFormNS;
+using System.Runtime.Serialization;
 
 namespace StorableFormState
 {
-    public class FormWStorableState : Form
+    public class FormWStorableState<ConfigType> : InvokeForm where ConfigType : StorableFormConfig, new()
     {
-        public virtual StorableFormConfig storableConfig { get; }
-        public virtual void writeConfig() { }
+        public XmlConfig<ConfigType> config;
+        public virtual void writeConfig() {
+            config.write();
+        }
         public bool loaded = false;
 
         public void storeFormState()
         {
             Rectangle bounds = this.WindowState != FormWindowState.Normal ? this.RestoreBounds : this.DesktopBounds;
-            storableConfig.formLocation = bounds.Location;
-            storableConfig.formSize = bounds.Size;
+            config.data.formLocation = bounds.Location;
+            config.data.formSize = bounds.Size;
         }
 
-        public virtual void restoreFormState()
+        public void restoreFormState()
         {
-              if (storableConfig?.formLocation != null && !storableConfig.formLocation.IsEmpty)
+              if (config != null && config.data != null && config.data.formLocation != null && !config.data.formLocation.IsEmpty)
                   this.DesktopBounds =
-                          new Rectangle(storableConfig.formLocation, storableConfig.formSize);
+                          new Rectangle(config.data.formLocation, config.data.formSize);
         }
 
         public FormWStorableState()
         {
+            config = new XmlConfig<ConfigType>();
             Load += FormWStorableState_Load;
             ResizeEnd += FormWStorableState_MoveResize;
             Move += FormWStorableState_MoveResize;
@@ -53,11 +59,13 @@ namespace StorableFormState
     }
 
 
-
+    [DataContractAttribute]
     public class StorableFormConfig
     {
         public System.Drawing.Point formLocation;
         public System.Drawing.Size formSize;
+
+        public StorableFormConfig() { }
     }
 
 }

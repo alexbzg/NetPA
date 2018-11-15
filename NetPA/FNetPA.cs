@@ -16,10 +16,11 @@ using JeromeModuleSettings;
 using System.Threading;
 using StorableFormState;
 using NetComm;
+using ExpertSync;
 
 namespace NetPA
 {
-    public partial class FNetPA : FormWStorableState
+    public partial class FNetPA : FormWStorableState<NetCommConfig>
     {
         public static NetPAControllerTemplate controllerTemplate = new NetPAControllerTemplate
         {
@@ -36,10 +37,10 @@ namespace NetPA
         protected List<CheckBox> buttons = new List<CheckBox>();
         protected List<CheckBox> buttonsRelay = new List<CheckBox>();
         protected List<string> buttonLabels = new List<string>();
+        protected List<string> buttonRelayLabels = new List<string>();
         protected Dictionary<JeromeConnectionParams, ToolStripMenuItem> menuControl = new Dictionary<JeromeConnectionParams, ToolStripMenuItem>();
         protected Color buttonsColor;
-//        protected Dictionary<int, int> esBindings = new Dictionary< int, int> ();
-        protected NetCommConfig config = new NetCommConfig();
+        protected Dictionary<int, int> esBindings = new Dictionary< int, int> ();
         protected bool trx = false;
         protected volatile bool closing = false;
         protected JeromeConnectionState activeConnection;
@@ -56,7 +57,7 @@ namespace NetPA
                 foreach (int c in new int[] { 0, buttonPositions.Length - 1 } )
                     if (_position == buttonPositions[c])
                     {
-                        this.Invoke((MethodInvoker)delegate { buttons[c].Checked = true; });
+                        Invoke((MethodInvoker) delegate { buttons[c].Checked = true; });
                         break;
                     }
             }
@@ -77,14 +78,12 @@ namespace NetPA
         protected volatile int target = -1;
         private void checkLimitPosition()
         {
-            if (_limit != -1 && position == 0)
-                position = -1;
-            if (_limit != 1 && position == buttonPositions[buttonPositions.Length - 1])
-                position = -1;
             if (limit == -1)
-                position = 0;
+                _position = 0;
             if (limit == 1)
-                position = buttonPositions[buttonPositions.Length - 1];
+                _position = buttonPositions[buttonPositions.Length - 1];
+            Invoke((MethodInvoker)delegate { slPosition.Text = _position.ToString(); });
+
         }
 
         private void onBlinkTimer(object state)
@@ -108,15 +107,42 @@ namespace NetPA
                 buttons[no].Text = buttonLabels[no];
         }
 
+        protected void updateButtonRelayLabel(int no)
+        {
+            if (buttonRelayLabels[no].Equals(string.Empty))
+                buttonsRelay[no].Text = (no + 1).ToString();
+            else
+                buttonsRelay[no].Text = buttonRelayLabels[no];
+        }
+
+
         public FNetPA()
         {
             InitializeComponent();
             Width = 200;
 
-            initConfig();
+            config.data.initialize();
+            if (config.data.connections != null)
+            {
+                for (int co = 0; co < config.data.connections.Count(); co++)
+                {
+                    connections[config.data.connections[co]] = config.data.states[co];
+                }
+            }
+            else
+                connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
+            if (config.data.buttonLabels != null)
+                buttonLabels = config.data.buttonLabels.ToList();
+            if (config.data.buttonRelayLabels != null)
+                buttonRelayLabels = config.data.buttonRelayLabels.ToList();
+            if (config.data.esMhzValues != null)
+                for (int co = 0; co < config.data.esButtons.Count(); co++)
+                    esBindings[config.data.esMhzValues[co]] = config.data.esButtons[co];
+
             for (int co = buttonLabels.Count(); co < buttonPositions.Count(); co++)
                 buttonLabels.Add("");
-            miRelaySettings.Enabled = connections.Count > 0;
+            for (int co = buttonRelayLabels.Count(); co < controllerTemplate.relays.Length; co++)
+                buttonRelayLabels.Add("");
             foreach ( JeromeConnectionParams c in connections.Keys )
                 createConnectionMI( c );
             Parallel.ForEach(connections.Where(x => x.Value.active),
@@ -329,6 +355,39 @@ namespace NetPA
             });
         }
 
+        private void esItem_Click(object sender, EventArgs e)
+        {
+            FESConnection fesc = new FESConnection(config.esHost, config.esPort);
+            if (fesc.ShowDialog() == DialogResult.OK &&
+                (config.data.esHost != fesc.host || config.esPort != fesc.port))
+            {
+                config.esHost = fesc.host;
+                config.esPort = fesc.port;
+                esConnect();
+            }
+        }
+
+
+        private void esConnect()
+        {
+#if DEBUG
+#if DISABLE_ES
+                    return;
+#endif
+#endif
+            if (esConnector != null && esConnector.connected)
+                esConnector.disconnect();
+            if (config.esHost != null && config.esPort != 0)
+            {
+                writeConfig();
+                esConnector = new ExpertSyncConnector(config.esHost, config.esPort);
+                esConnector.reconnect = true;
+                esConnector.onMessage += esMessage;
+                esConnector.asyncConnect();
+            }
+        }
+
+
         protected void FMain_Load(object sender, EventArgs e)
         {
             Width = 100;
@@ -369,23 +428,25 @@ namespace NetPA
                 CheckBox b = new CheckBox();
                 b.Height = 25;
                 b.Width = Width - 7;
-                b.Top = 25 + 27 * buttonPositions.Count() + (b.Height + 2) * co;
+                b.Top = 50 + 27 * buttonPositions.Count() + (b.Height + 2) * co;
                 b.Left = 1;
                 b.TextAlign = ContentAlignment.MiddleCenter;
                 int no = co;
                 buttonsRelay.Add(b);
+                updateButtonRelayLabel(no);
                 b.BackColor = SystemColors.Control;
                 b.Appearance = Appearance.Button;
                 b.Enabled = false;
                 b.Anchor = AnchorStyles.Right | AnchorStyles.Left;
                 b.MouseDown += new MouseEventHandler(delegate (object obj, MouseEventArgs ea)
                 {
-                    if (activeConnection != null && activeConnection.connected)
+                    if (ea.Button == MouseButtons.Left && activeConnection != null && activeConnection.connected)
                         activeConnection.controller.switchLine(controllerTemplate.relays[no], 1);
                 });
+                b.MouseDown += form_MouseClick;
                 b.MouseUp += new MouseEventHandler(delegate (object obj, MouseEventArgs ea)
                 {
-                    if (activeConnection != null && activeConnection.connected)
+                    if (ea.Button == MouseButtons.Left && activeConnection != null && activeConnection.connected)
                         activeConnection.controller.switchLine(controllerTemplate.relays[no], 0);
                 });
                 Controls.Add(b);
@@ -397,55 +458,37 @@ namespace NetPA
         {
             if (!loaded)
                 return;
-            config.lastConnection = -1;
+            config.data.lastConnection = -1;
 
-            config.connections = new JeromeConnectionParams[connections.Count];
-            config.states = new JeromeConnectionState[connections.Count];
+            config.data.connections = new JeromeConnectionParams[connections.Count];
+            config.data.states = new JeromeConnectionState[connections.Count];
             int co = 0;
             foreach (KeyValuePair<JeromeConnectionParams, JeromeConnectionState> x in connections)
             {
                 if (x.Value.active)
-                    config.lastConnection = co;
-                config.connections[co] = x.Key;
-                config.states[co] = x.Value;
+                    config.data.lastConnection = co;
+                config.data.connections[co] = x.Key;
+                config.data.states[co] = x.Value;
                 co++;
             }
 
-            config.buttonLabels = buttonLabels.ToArray();
+            config.data.buttonLabels = buttonLabels.ToArray();
+            config.data.buttonRelayLabels = buttonRelayLabels.ToArray();
 
-            /* config.esMhzValues = new int[ esBindings.Count ];
-             config.esButtons = new int[esBindings.Count];
+             config.data.esMhzValues = new int[ esBindings.Count ];
+             config.data.esButtons = new int[esBindings.Count];
              co = 0;
              foreach ( KeyValuePair<int,int> x in esBindings ) {
-                 config.esMhzValues[co] = x.Key;
-                 config.esButtons[co] = x.Value;
+                 config.data.esMhzValues[co] = x.Key;
+                 config.data.esButtons[co] = x.Value;
                  co++;
-             }*/
+             }
 
-            writeConfig();
+            config.write();
         }
 
         protected void initConfig()
         {
-            if (config.connections != null)
-            {
-                if (config.states == null || config.states.Count() == 0)
-                    config.states = new JeromeConnectionState[config.connections.Count()];
-                for (int co = 0; co < config.connections.Count(); co++)
-                {
-                    if (config.states[co] == null)
-                        config.states[co] = new JeromeConnectionState();
-                    //config.states[co].active = false;
-                    connections[config.connections[co]] = config.states[co];
-                }
-            }
-            else
-                connections = new Dictionary<JeromeConnectionParams, JeromeConnectionState>();
-            if (config.buttonLabels != null) 
-                buttonLabels = config.buttonLabels.ToList();
-          /*  if ( config.esMhzValues != null )
-                for (int co = 0; co < config.esButtons.Count(); co++)
-                    esBindings[config.esMhzValues[co]] = config.esButtons[co];*/
         }
 
         protected void miModuleSettings_Click(object sender, EventArgs e)
@@ -528,23 +571,25 @@ namespace NetPA
                         updateButtonLabel(no);
                     }
                 }
+                if (b != null && buttonsRelay.Contains(b))
+                {
+                    int no = buttonsRelay.IndexOf(b);
+                    FButtonProps ib = new FButtonProps(buttonRelayLabels[no]);
+                    ib.StartPosition = FormStartPosition.CenterParent;
+                    ib.ShowDialog(this);
+                    if (ib.DialogResult == DialogResult.OK)
+                    {
+                        buttonRelayLabels[no] = ib.name;
+                        b.Text = ib.name;
+                        writeConfig();
+                        updateButtonRelayLabel(no);
+                    }
+                }
             }
         }
 
-        protected void miRelaySettings_Click(object sender, EventArgs e)
-        {
-            FRelaySettings frs = new FRelaySettings(connections, buttonLabels);
-            frs.ShowDialog();
-            if (frs.DialogResult == DialogResult.OK)
-            {
-                for (int co = 0; co < buttonPositions.Count(); co++)
-                    connections[frs.connection].lines[co] = frs.cbLines[co].SelectedIndex + 1;
-                writeConfig();
-            }
-        }
 
-
-        public override void esMessage(int mhz, bool _trx)
+        public void esMessage(int mhz, bool _trx)
         {
             if (trx != _trx)
             {
@@ -574,18 +619,21 @@ namespace NetPA
 
         protected void FMain_ResizeEnd(object sender, EventArgs e)
         {
-            int bHeight = ( this.ClientSize.Height - 50 ) / ( buttons.Count() + buttonsRelay.Count()) - 2;
-            for (int co = 0; co < buttons.Count(); co++)
+            if (buttons.Count() + buttonsRelay.Count() > 0)
             {
-                CheckBox b = buttons[co];
-                b.Height = bHeight;
-                b.Top = 25 + (bHeight + 2) * co;
-            }
-            for (int co = 0; co < buttonsRelay.Count(); co++)
-            {
-                CheckBox b = buttonsRelay[co];
-                b.Height = bHeight;
-                b.Top = 25 + (bHeight + 2) * (buttons.Count() + co);
+                int bHeight = (this.ClientSize.Height - 75) / (buttons.Count() + buttonsRelay.Count()) - 2;
+                for (int co = 0; co < buttons.Count(); co++)
+                {
+                    CheckBox b = buttons[co];
+                    b.Height = bHeight;
+                    b.Top = 25 + (bHeight + 2) * co;
+                }
+                for (int co = 0; co < buttonsRelay.Count(); co++)
+                {
+                    CheckBox b = buttonsRelay[co];
+                    b.Height = bHeight;
+                    b.Top = 50 + (bHeight + 2) * (buttons.Count() + co);
+                }
             }
         }
 

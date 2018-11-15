@@ -26,7 +26,7 @@
         /// Обязательный метод для поддержки конструктора - не изменяйте
         /// содержимое данного метода при помощи редактора кода.
         /// </summary>
-        public override void InitializeComponent()
+        public void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FNetPA));
             this.toolStrip = new System.Windows.Forms.ToolStrip();
@@ -38,6 +38,7 @@
             this.miModuleSettings = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lRotation = new System.Windows.Forms.ToolStripStatusLabel();
+            this.slPosition = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStrip.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -99,7 +100,6 @@
             this.miRelaySettings.Name = "miRelaySettings";
             this.miRelaySettings.Size = new System.Drawing.Size(209, 22);
             this.miRelaySettings.Text = "Настройки реле";
-            this.miRelaySettings.Click += new System.EventHandler(this.miRelaySettings_Click);
             // 
             // miModuleSettings
             // 
@@ -112,19 +112,25 @@
             // 
             this.statusStrip1.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.lRotation});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 345);
+            this.lRotation,
+            this.slPosition});
+            this.statusStrip1.Location = new System.Drawing.Point(0, 341);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(120, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(120, 26);
             this.statusStrip1.TabIndex = 2;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // lRotation
             // 
-            this.lRotation.Image = global::JeromeControl.Properties.Resources.rotate_icon;
             this.lRotation.Name = "lRotation";
-            this.lRotation.Size = new System.Drawing.Size(16, 17);
+            this.lRotation.Size = new System.Drawing.Size(0, 21);
             this.lRotation.Visible = false;
+            // 
+            // slPosition
+            // 
+            this.slPosition.Name = "slPosition";
+            this.slPosition.Size = new System.Drawing.Size(157, 21);
+            this.slPosition.Text = "toolStripStatusLabel1";
             // 
             // FNetPA
             // 
@@ -167,6 +173,7 @@
         private System.Windows.Forms.ToolStripMenuItem miRelaySettings;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel lRotation;
+        private System.Windows.Forms.ToolStripStatusLabel slPosition;
     }
 }
 
