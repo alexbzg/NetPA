@@ -34,8 +34,8 @@
             this.miControl = new System.Windows.Forms.ToolStripMenuItem();
             this.tssConnectionsSeparator = new System.Windows.Forms.ToolStripSeparator();
             this.miConnectionsList = new System.Windows.Forms.ToolStripMenuItem();
-            this.miRelaySettings = new System.Windows.Forms.ToolStripMenuItem();
             this.miModuleSettings = new System.Windows.Forms.ToolStripMenuItem();
+            this.miExpertSync = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.lRotation = new System.Windows.Forms.ToolStripStatusLabel();
             this.slPosition = new System.Windows.Forms.ToolStripStatusLabel();
@@ -69,7 +69,7 @@
             this.miControl,
             this.tssConnectionsSeparator,
             this.miConnectionsList,
-            this.miRelaySettings,
+            this.miExpertSync,
             this.miModuleSettings});
             this.ddbSettings.Image = ((System.Drawing.Image)(resources.GetObject("ddbSettings.Image")));
             this.ddbSettings.ImageTransparentColor = System.Drawing.Color.Magenta;
@@ -95,11 +95,12 @@
             this.miConnectionsList.Text = "Подключения";
             this.miConnectionsList.Click += new System.EventHandler(this.miConnectionsList_Click);
             // 
-            // miRelaySettings
+            // miExpertSync
             // 
-            this.miRelaySettings.Name = "miRelaySettings";
-            this.miRelaySettings.Size = new System.Drawing.Size(209, 22);
-            this.miRelaySettings.Text = "Настройки реле";
+            this.miExpertSync.Name = "miExpertSync";
+            this.miExpertSync.Size = new System.Drawing.Size(209, 22);
+            this.miExpertSync.Text = "ExpertSync";
+            this.miExpertSync.Click += new System.EventHandler(this.esItem_Click);
             // 
             // miModuleSettings
             // 
@@ -130,7 +131,7 @@
             // 
             this.slPosition.Name = "slPosition";
             this.slPosition.Size = new System.Drawing.Size(157, 21);
-            this.slPosition.Text = "toolStripStatusLabel1";
+            this.slPosition.Text = "0";
             // 
             // FNetPA
             // 
@@ -170,7 +171,7 @@
         private System.Windows.Forms.ToolStripSeparator tssConnectionsSeparator;
         private System.Windows.Forms.ToolStripMenuItem miModuleSettings;
         private System.Windows.Forms.ToolStripMenuItem miControl;
-        private System.Windows.Forms.ToolStripMenuItem miRelaySettings;
+        private System.Windows.Forms.ToolStripMenuItem miExpertSync;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel lRotation;
         private System.Windows.Forms.ToolStripStatusLabel slPosition;

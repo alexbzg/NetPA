@@ -76,6 +76,9 @@ namespace NetPA
         private volatile Task rotateTask;
         private System.Threading.Timer blinkTimer;
         protected volatile int target = -1;
+
+        private ExpertSyncConnector esConnector;
+
         private void checkLimitPosition()
         {
             if (limit == -1)
@@ -318,21 +321,7 @@ namespace NetPA
         protected void updateButtonsMode()
         {
             for (int co = 0; co < buttons.Count(); co++)
-            {
-                bool busy = connections.Values.ToList().Exists(x => x.watch && x.linesStates[co]);
-                buttons[co].Enabled = !trx && connected && !busy;
-                /*if (esBindings.ContainsValue(co) )
-                {
-                    int band = esBindings.First(x => x.Value == co).Key;
-                    if (busy)
-                    {
-                        if (!appContext.busyBands.Contains(band))
-                            appContext.busyBands.Add(band);
-                    } else 
-                        if (appContext.busyBands.Contains(band))
-                            appContext.busyBands.Remove(band);
-                }*/
-            }
+                buttons[co].Enabled = !trx && connected;
             foreach (CheckBox b in buttonsRelay)
                 b.Enabled = !trx && connected;
         }
@@ -377,16 +366,15 @@ namespace NetPA
 #endif
             if (esConnector != null && esConnector.connected)
                 esConnector.disconnect();
-            if (config.esHost != null && config.esPort != 0)
+            if (config.data.esHost != null && config.data.esPort != 0)
             {
                 writeConfig();
-                esConnector = new ExpertSyncConnector(config.esHost, config.esPort);
+                esConnector = new ExpertSyncConnector(config.data.esHost, config.data.esPort);
                 esConnector.reconnect = true;
                 esConnector.onMessage += esMessage;
                 esConnector.asyncConnect();
             }
         }
-
 
         protected void FMain_Load(object sender, EventArgs e)
         {
@@ -510,7 +498,6 @@ namespace NetPA
             JeromeConnectionParams c = (JeromeConnectionParams)obj;
             connections[c] = new JeromeConnectionState();
             createConnectionMI(c);
-            miRelaySettings.Enabled = true;
             writeConfig();
         }
 
@@ -532,7 +519,6 @@ namespace NetPA
                 connections.Remove(c);
                 miControl.DropDownItems.Remove(menuControl[c]);
                 menuControl.Remove(c);
-                miRelaySettings.Enabled = connections.Count > 0;
                 writeConfig();
             }
         }
@@ -589,17 +575,18 @@ namespace NetPA
         }
 
 
-        public void esMessage(int mhz, bool _trx)
+        public void esMessage(object Sender, MessageEventArgs e)
         {
-            if (trx != _trx)
+            if (trx != e.trx)
             {
-                trx = _trx;
+                trx = e.trx;
                 this.Invoke((MethodInvoker)delegate {
                     updateButtonsMode();
                 });
             }
+            int mhz = ((int)e.vfoa) / 1000000;
             if ( esBindings.ContainsKey( mhz ) ) 
-                this.Invoke( (MethodInvoker) delegate {
+                Invoke( (MethodInvoker) delegate {
                     buttons[esBindings[mhz]].Checked = true;
                 });
         }
